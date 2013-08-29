@@ -4,7 +4,9 @@
 <%= will_paginate %>
 
 <ul class="users">
+  <%# Renders each user with the _user partial by convention %>
   <%= render @users %>
 </ul>
 
+<%# Don't need to specify will_paginate @users b/c rails assumes this from the controller %> 
 <%= will_paginate %>

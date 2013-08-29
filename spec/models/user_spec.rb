@@ -16,6 +16,10 @@ describe User do
   it { should respond_to(:password_confirmation) }
   it { should respond_to(:remember_token) }  
   it { should respond_to(:authenticate) }
+  it { should respond_to(:admin) }
+  it { should respond_to(:microposts) }
+  it { should respond_to(:feed) }
+
 
   it { should be_valid }
   # Implies that the user should have an admin? boolean method.
@@ -122,5 +126,46 @@ describe User do
   describe "remember token" do
     before { @user.save }
     its(:remember_token) { should_not be_blank }
+  end  
+
+  describe "micropost associations" do
+
+    before { @user.save }
+    # Let! forces this variable to instantiate immediately.
+    # In contrast, let has lazy evaluation rules. They come into existence only when
+    # referenced.
+    let!(:older_micropost) do
+      FactoryGirl.create(:micropost, user: @user, created_at: 1.day.ago)
+    end
+    let!(:newer_micropost) do
+      FactoryGirl.create(:micropost, user: @user, created_at: 1.hour.ago)
+    end
+
+    it "should have the right microposts in the right order" do
+      expect(@user.microposts.to_a).to eq [newer_micropost, older_micropost]
+    end
+
+    it "should destroy associated microposts" do
+      # to_a makes a copy of microposts
+      microposts = @user.microposts.to_a
+      @user.destroy
+      expect(microposts).not_to be_empty
+      microposts.each do |micropost|
+        # Micropost.where returns an empty object if the record is not found.
+        # This makes it easier to test. Micropost.find raises an exception.
+        expect(Micropost.where(id: micropost.id)).to be_empty
+      end
+    end
+
+    describe "status" do
+      let(:unfollowed_post) do
+        FactoryGirl.create(:micropost, user: FactoryGirl.create(:user))
+      end
+
+      # include method just checks if the array contains the element.
+      its(:feed) { should include(newer_micropost) }
+      its(:feed) { should include(older_micropost) }
+      its(:feed) { should_not include(unfollowed_post) }
+    end        
   end    
 end
